@@ -1,8 +1,10 @@
 package com.sprint.mission.discodeit.entity;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public class User {
+public class User implements Serializable{
+    private static final long serialVersionUID = 1L;
     // 공통 필드
     private UUID id;
     private Long createdAt; // 언제 만들어졌는지 파악
