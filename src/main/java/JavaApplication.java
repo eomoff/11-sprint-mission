@@ -7,10 +7,15 @@ import com.sprint.mission.discodeit.service.UserService;
 import com.sprint.mission.discodeit.service.jcf.JCFChannelService;
 import com.sprint.mission.discodeit.service.jcf.JCFMessageService;
 import com.sprint.mission.discodeit.service.jcf.JCFUserService;
+import com.sprint.mission.discodeit.service.file.FileChannelService;
+import com.sprint.mission.discodeit.service.file.FileMessageService;
+import com.sprint.mission.discodeit.service.file.FileUserService;
 import java.util.List;
 
 public class JavaApplication {
     public static void main(String[] args) {
+        // JCF 테스트
+        System.out.println("===========JCF 테스트===========");
         UserService userService = new JCFUserService();
         ChannelService channelService = new JCFChannelService();
         MessageService messageService = new JCFMessageService();
@@ -18,6 +23,15 @@ public class JavaApplication {
         testUser(userService);
         testChannel(channelService);
         testMessage(messageService);
+
+        System.out.println("===========File 테스트===========");
+        UserService fileUserService = new FileUserService("data/users");
+        ChannelService fileChannelService = new FileChannelService("data/channels");
+        MessageService fileMessageService = new FileMessageService("data/messages");
+
+        testUser(fileUserService);
+        testChannel(fileChannelService);
+        testMessage(fileMessageService);
 
     }
     // User 테스트
