@@ -11,15 +11,15 @@ import java.util.stream.Collectors;
 public class FileChannelService implements ChannelService {
 
     // 채널 데이터를 저장할 디렉토리 경로임
-    private final Path direvtory;
+    private final Path directory;
 
 
     // 생성자: 저장 디렉토리 경로를 받아 초기화하고, 디렉토리가 없으면 생성하는 기능임
     public FileChannelService(String directoryPath) {
-        this.direvtory = Paths.get(directoryPath);
-        if (!Files.exists(this.direvtory)) {
+        this.directory = Paths.get(directoryPath);
+        if (!Files.exists(this.directory)) {
             try {
-                Files.createDirectories(this.direvtory);
+                Files.createDirectories(this.directory);
             } catch (IOException e) {
                 throw new RuntimeException("디렉토리 생성 실패: " + directoryPath, e);
             }
@@ -27,8 +27,8 @@ public class FileChannelService implements ChannelService {
     }
 
     // Channel 객체를 직렬화하여 파일(.ser)로 저장하는 기능임
-    private void saveToFiole(Channel channel) {
-        Path filePath = direvtory.resolve(channel.getId().toString() + ".ser");
+    private void saveToFile(Channel channel) {
+        Path filePath = directory.resolve(channel.getId().toString() + ".ser");
         try (ObjectOutputStream oos = new ObjectOutputStream((new FileOutputStream((filePath.toFile()))))) {
             oos.writeObject(channel);
         } catch (IOException e) {
@@ -49,14 +49,14 @@ public class FileChannelService implements ChannelService {
     @Override
     public Channel create(String name) {
         Channel channel = new Channel(name);
-        saveToFiole(channel);
+        saveToFile(channel);
         return channel;
     }
 
     // UUID로 특정 Channel을 조회 (파일이 없으면 null 반환)
     @Override
     public Channel find(UUID id) {
-        Path filePath = direvtory.resolve(id.toString() + ".ser");
+        Path filePath = directory.resolve(id.toString() + ".ser");
         if (!Files.exists(filePath)) {
             return null;
         }
@@ -67,7 +67,7 @@ public class FileChannelService implements ChannelService {
     @Override
     public List<Channel> findAll() {
         try {
-            return Files.list(direvtory)
+            return Files.list(directory)
                     .filter(path -> path.toString().endsWith(".ser"))
                     .map(this::loadFromFile)
                     .collect(Collectors.toList());
@@ -82,7 +82,7 @@ public class FileChannelService implements ChannelService {
         Channel channel = find(id);
         if (channel != null) {
             channel.update(name);
-            saveToFiole(channel);
+            saveToFile(channel);
         }
         return channel;
     }
@@ -90,7 +90,7 @@ public class FileChannelService implements ChannelService {
     // UUID에 해당하는 Channel 파일을 삭제
     @Override
     public void delete(UUID id) {
-        Path filePath = direvtory.resolve(id.toString() + ".ser");
+        Path filePath = directory.resolve(id.toString() + ".ser");
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {

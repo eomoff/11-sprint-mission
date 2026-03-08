@@ -52,9 +52,9 @@ public class FileMessageService implements MessageService {
         return message;
     }
 
-    // UUID로 특정 Messge를 조회 (파일이 없으면 null 반환)
+    // UUID로 특정 Message를 조회 (파일이 없으면 null 반환)
     @Override
-    public Message fine(UUID id) {
+    public Message find(UUID id) {
         Path filePath = directory.resolve(id.toString() + ".ser");
         if (!Files.exists(filePath)) {
             return null;
@@ -83,6 +83,7 @@ public class FileMessageService implements MessageService {
             message.update(content);
             saveToFile(message);
         }
+        return message;
     }
 
     // UUID에 해당하는 Message 파일을 삭제하는거
@@ -92,7 +93,7 @@ public class FileMessageService implements MessageService {
         try {
             Files.delete(filePath);
         } catch (IOException e) {
-            throw new RuntimeException("파일 삭제 실패: " , filePath, e)
+            throw new RuntimeException("파일 삭제 실패: " + filePath, e);
         }
     }
 
