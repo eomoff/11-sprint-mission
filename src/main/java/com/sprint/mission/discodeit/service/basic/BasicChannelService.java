@@ -16,7 +16,7 @@ public class BasicChannelService implements ChannelService{
 
     @Override
     public Channel create(String name) {
-        Channel channel = new Channel();
+        Channel channel = new Channel(name);
         return channelRepository.save(channel);
     }
 
