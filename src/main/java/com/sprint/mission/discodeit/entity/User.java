@@ -23,10 +23,18 @@ public class User implements Serializable{
     }
 
     // getter 모음
-    public UUID getId() { return id; }
-    public Long getCreatedAt() { return createdAt; }
-    public Long getUpdatedAt() { return updatedAt; }
-    public String getName() { return name; }
+    public UUID getId() {
+        return id;
+    }
+    public Long getCreatedAt() {
+        return createdAt;
+    }
+    public Long getUpdatedAt() {
+        return updatedAt;
+    }
+    public String getName() {
+        return name;
+    }
 
     // update
     public void update(String name) {

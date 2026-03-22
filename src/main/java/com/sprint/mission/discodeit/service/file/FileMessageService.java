@@ -1,7 +1,9 @@
 package com.sprint.mission.discodeit.service.file;
 
 import com.sprint.mission.discodeit.entity.Message;
+import com.sprint.mission.discodeit.service.ChannelService;
 import com.sprint.mission.discodeit.service.MessageService;
+import com.sprint.mission.discodeit.service.UserService;
 
 import java.io.*;
 import java.nio.file.*;
@@ -12,10 +14,14 @@ import java.util.stream.Collectors;
 public class FileMessageService implements MessageService {
     // 메세지 데이터를 저장할 디렉토리 경로
     private final Path directory;
+    private final UserService userService;
+    private final ChannelService channelService;
 
     // 생성자: 저장 디렉토리 경로를 받아 초기화하고, 디렉토리가 없으면 생성하는거
-    public FileMessageService(String directoryPath) {
+    public FileMessageService(String directoryPath, UserService userService, ChannelService channelService) {
         this.directory = Paths.get(directoryPath);
+        this.userService = userService;
+        this.channelService = channelService;
         if (!Files.exists(directory)) {
             try {
                 Files.createDirectories(this.directory);
@@ -46,8 +52,15 @@ public class FileMessageService implements MessageService {
 
     // 새로운 Message를 생성하고 파일로 저장한 뒤 반환하는 기능임
     @Override
-    public Message create(String content) {
-        Message message = new Message(content);
+    public Message create(String content, UUID channelId, UUID authorId) {
+        if (userService.find(authorId) == null) {
+            throw new IllegalArgumentException("존재하지 않는 사용자입니다: " + authorId);
+        }
+        if (channelService.find(channelId) == null) {
+            throw new IllegalArgumentException("존재하지 않는 채널입니다: " + channelId);
+        }
+
+        Message message = new Message(content, channelId, authorId);
         saveToFile(message);
         return message;
     }
