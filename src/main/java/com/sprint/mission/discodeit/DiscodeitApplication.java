@@ -35,12 +35,21 @@ public class DiscodeitApplication {
 	public static void main(String[] args) {
 		ConfigurableApplicationContext context = SpringApplication.run(DiscodeitApplication.class, args);
 
-		UserService userService = context.getBean(UserService.class);
-		ChannelService channelService = context.getBean(ChannelService.class);
-		MessageService messageService = context.getBean(MessageService.class);
+		// 서비스 초기화
+		UserService userService;
+		ChannelService channelService;
+		MessageService messageService;
 
+		// context에서 Bean 조회
+		userService = context.getBean(UserService.class);
+		channelService = context.getBean(ChannelService.class);
+		messageService = context.getBean(MessageService.class);
+
+		// 셋업
 		User user = setupUser(userService);
 		Channel channel = setupChannel(channelService);
+
+		// 테스트
 		messageCreateTest(messageService, channel, user);
 	}
 
