@@ -21,7 +21,44 @@
 - [ ] JavaApplication에서 테스트했던 코드를 DiscodeitApplication에서 테스트해보세요.
   - [ ] JavaApplication 의 main 메소드를 제외한 모든 메소드를 DiscodeitApplication클래스로 복사하세요.
   - [ ] JavaApplication의 main 메소드에서 Service를 초기화하는 코드를 Spring Context를 활용하여 대체하세요.
+```Java
+  // JavaApplication
+public static void main(String[] args) {
+// 레포지토리 초기화
+// ...
+// 서비스 초기화
+UserService userService = new BasicUserService(userRepository);
+ChannelService channelService = new BasicChannelService(channelRepository);
+MessageService messageService = new BasicMessageService(messageRepository, channelRepository, userRepository);
+
+    // ...
+}
+
+// DiscodeitApplication
+public static void main(String[] args) {
+ConfigurableApplicationContext context = SpringApplication.run(DiscodeitApplication.class, args);
+// 서비스 초기화
+// TODO context에서 Bean을 조회하여 각 서비스 구현체 할당 코드 작성하세요.
+UserService userService;
+ChannelService channelService;
+MessageService messageService;
+
+    // ...
+}
+```
+
   - [ ] JavaApplication의 main 메소드의 셋업, 테스트 부분의 코드를 DiscodeitApplication클래스로 복사하세요.
+```java
+public static void main(String[] args) {
+    // ...
+    // 셋업
+    User user = setupUser(userService);
+    Channel channel = setupChannel(channelService);
+    // 테스트
+    messageCreateTest(messageService, channel, user);
+}
+
+```
 
 ### Spring 핵심 개념 이해하기
 - [ ] JavaApplication과 DiscodeitApplication에서 Service를 초기화하는 방식의 차이에 대해 다음의 키워드를 중심으로 정리해보세요.
