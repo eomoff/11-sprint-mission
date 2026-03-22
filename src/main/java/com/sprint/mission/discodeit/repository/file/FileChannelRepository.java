@@ -9,6 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class FileChannelRepository implements ChannelRepository{
+    private static final String FILE_EXTENSION = ".ser";
     private final Path directory;
 
     public FileChannelRepository(String directoryPath) {
@@ -23,7 +24,7 @@ public class FileChannelRepository implements ChannelRepository{
     }
 
     private void saveToFile(Channel channel) {
-        Path filePath = directory.resolve(channel.getId().toString() + ".ser");
+        Path filePath = directory.resolve(channel.getId().toString() + FILE_EXTENSION);
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath.toFile()))) {
             oos.writeObject(channel);
         } catch (IOException e) {
@@ -47,7 +48,7 @@ public class FileChannelRepository implements ChannelRepository{
 
     @Override
     public Channel findById(UUID id) {
-        Path filePath = directory.resolve(id.toString() + ".ser");
+        Path filePath = directory.resolve(id.toString() + FILE_EXTENSION);
         if (!Files.exists(filePath)) {
             return null;
         }
@@ -58,7 +59,7 @@ public class FileChannelRepository implements ChannelRepository{
     public List<Channel> findAll() {
         try {
             return Files.list(directory)
-                    .filter(path -> path.toString().endsWith(".ser"))
+                    .filter(path -> path.toString().endsWith(FILE_EXTENSION))
                     .map(this::loadFromFile)
                     .collect(Collectors.toList());
         } catch (IOException e) {
@@ -68,7 +69,7 @@ public class FileChannelRepository implements ChannelRepository{
 
     @Override
     public void delete(UUID id) {
-        Path filePath = directory.resolve(id.toString() + ".ser");
+        Path filePath = directory.resolve(id.toString() + FILE_EXTENSION);
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {

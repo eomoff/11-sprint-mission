@@ -9,6 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class FileUserRepository implements UserRepository {
+    private static final String FILE_EXTENSION = ".ser";
     private final Path directory;
 
     public FileUserRepository(String directoryPath) {
@@ -23,7 +24,7 @@ public class FileUserRepository implements UserRepository {
     }
 
     private void saveToFile(User user) {
-        Path filePath = directory.resolve(user.getId().toString() + ".ser");
+        Path filePath = directory.resolve(user.getId().toString() + FILE_EXTENSION);
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath.toFile()))) {
             oos.writeObject(user);
         } catch (IOException e) {
@@ -47,7 +48,7 @@ public class FileUserRepository implements UserRepository {
 
     @Override
     public User findById(UUID id) {
-        Path filePath = directory.resolve(id.toString() + ".ser");
+        Path filePath = directory.resolve(id.toString() + FILE_EXTENSION);
         if (!Files.exists(filePath)) {
             return null;
         }
@@ -58,7 +59,7 @@ public class FileUserRepository implements UserRepository {
     public List<User> findAll() {
         try {
             return Files.list(directory)
-                    .filter(path -> path.toString().endsWith(".ser"))
+                    .filter(path -> path.toString().endsWith(FILE_EXTENSION))
                     .map(this::loadFromFile)
                     .collect(Collectors.toList());
         } catch (IOException e) {
@@ -68,7 +69,7 @@ public class FileUserRepository implements UserRepository {
 
     @Override
     public void delete(UUID id) {
-        Path filePath = directory.resolve(id.toString() + ".ser");
+        Path filePath = directory.resolve(id.toString() + FILE_EXTENSION);
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
