@@ -47,7 +47,7 @@ public class FileChannelRepository implements ChannelRepository{
 
     @Override
     public Channel findById(UUID id) {
-        Path filePath = directory.resolve(id.toString() + ".ser");;
+        Path filePath = directory.resolve(id.toString() + ".ser");
         if (!Files.exists(filePath)) {
             return null;
         }
