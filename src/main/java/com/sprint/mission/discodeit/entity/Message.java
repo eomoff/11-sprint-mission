@@ -1,8 +1,11 @@
 package com.sprint.mission.discodeit.entity;
 
+import lombok.Getter;
+
 import java.io.Serializable;
 import java.util.UUID;
 
+@Getter
 public class Message implements Serializable {
     private static final long serialVersionUID = 1L;
     // 공통 필드
@@ -12,21 +15,19 @@ public class Message implements Serializable {
 
     // Message 필드
     private String content;
+    private UUID channelId;
+    private UUID authorId;
 
     // 생성자
-    public Message(String content) {
+    public Message(String content, UUID channelId, UUID authorId) {
         long now = System.currentTimeMillis();
         this.id = UUID.randomUUID();
         this.createdAt = now;
         this.updatedAt = now;
         this.content = content;
+        this.channelId = channelId;
+        this.authorId = authorId;
     }
-
-    // getter 모음
-    public UUID getId() { return id; }
-    public Long getCreatedAt() { return createdAt; }
-    public Long getUpdatedAt() { return updatedAt; }
-    public String getContent() { return content; }
 
     // update
     public void update(String content) {
