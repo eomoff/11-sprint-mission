@@ -16,21 +16,23 @@ public class User implements Serializable{
     private Instant updatedAt; // 언제 마지막으로 수정됐는지 파악
 
     // User 필드
-    private String name;
+    private String userName;
+    private String email;
+    private String password;
 
     // 생성자
     public User(String name) {
         this.id = UUID.randomUUID();
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
-        this.name = name;
+        this.userName = name;
     }
 
     // update
     public void update(String newName) {
         boolean anyValueUpdated = false;
-        if (newName != null && !newName.equals(this.name)) {
-            this.name = newName;
+        if (newName != null && !newName.equals(this.userName)) {
+            this.userName = newName;
             anyValueUpdated = true;
         }
         if (anyValueUpdated) {
