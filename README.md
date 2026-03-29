@@ -68,7 +68,7 @@ public static void main(String[] args) {
 
 ### Lombok 적용
 - [x] 도메인 모델의 getter 메소드를 @Getter로 대체해보세요.
-- [ ] Basic*Service의 생성자를 @RequiredArgsConstructor로 대체해보세요.
+- [x] Basic*Service의 생성자를 @RequiredArgsConstructor로 대체해보세요.
 
 ### 비즈니스 로직 고도화
 - [ ]  다음의 기능 요구 사항을 구현하세요.
