@@ -48,7 +48,7 @@ public class FileUserRepository implements UserRepository {
     }
 
     @Override
-    public List<User> findById(UUID id) {
+    public Optional<User> findById(UUID id) {
         User userNullable = null;
         Path path = resolvePath(id);
         if (Files.exists(path)) {
