@@ -93,7 +93,7 @@ public class FileChannelRepository implements ChannelRepository{
     }
 
     @Override
-    public void delete(UUID id) {
+    public void deleteById(UUID id) {
         Path path = resolvePath(id);
         try {
             Files.deleteIfExists(path);

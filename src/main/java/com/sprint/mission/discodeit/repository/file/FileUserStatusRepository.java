@@ -90,7 +90,7 @@ public class FileUserStatusRepository implements UserStatusRepository {
                             throw new RuntimeException(e);
                         }
                     })
-                    .toList()
+                    .toList();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
