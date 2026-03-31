@@ -11,7 +11,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@ConditionalOnProperty(name = "discodeit.repsitory.type", havingValue = "file")
+@ConditionalOnProperty(name = "discodeit.repository.type", havingValue = "file")
 @Repository
 public class FileMessageRepository implements MessageRepository {
     private final String FILE_EXTENSION = ".ser";
