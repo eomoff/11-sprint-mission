@@ -1,5 +1,6 @@
 package com.sprint.mission.discodeit.controller;
 
+import com.sprint.mission.discodeit.controller.api.MessageApi;
 import com.sprint.mission.discodeit.dto.request.BinaryContentCreateRequest;
 import com.sprint.mission.discodeit.dto.request.MessageCreateRequest;
 import com.sprint.mission.discodeit.dto.request.MessageUpdateRequest;
@@ -15,12 +16,13 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/messages")
-public class MessageController {
+public class MessageController implements MessageApi {
 
     private final MessageService messageService;
 
@@ -28,46 +30,51 @@ public class MessageController {
     public ResponseEntity<Message> create(
             @RequestPart("messageCreateRequest") MessageCreateRequest messageCreateRequest,
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments
-    ) throws IOException {
-        List<BinaryContentCreateRequest> binaryContentCreateRequests = new ArrayList<>();
-        if (attachments != null) {
-            for (MultipartFile attachment : attachments) {
-                binaryContentCreateRequests.add(new BinaryContentCreateRequest(
-                        attachment.getOriginalFilename(),
-                        attachment.getContentType(),
-                        attachment.getBytes()
-                ));
-            }
-        }
-
-        Message message = messageService.create(messageCreateRequest, binaryContentCreateRequests);
-        return ResponseEntity.status(HttpStatus.CREATED).body(message);
+    ) {
+        List<BinaryContentCreateRequest> attachmentRequests = Optional.ofNullable(attachments)
+                .map(files -> files.stream()
+                        .map(file -> {
+                            try {
+                                return new BinaryContentCreateRequest(
+                                        file.getOriginalFilename(),
+                                        file.getContentType(),
+                                        file.getBytes()
+                                );
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
+                        .toList())
+                .orElse(new ArrayList<>());
+        Message createdMessage = messageService.create(messageCreateRequest, attachmentRequests);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(createdMessage);
     }
 
-    @GetMapping("/{messageId}")
-    public ResponseEntity<Message> find(@PathVariable UUID messageId) {
-        Message message = messageService.find(messageId);
-        return ResponseEntity.ok(message);
+    @PatchMapping(path = "{messageId}")
+    public ResponseEntity<Message> update(@PathVariable("messageId") UUID messageId,
+                                          @RequestBody MessageUpdateRequest request) {
+        Message updatedMessage = messageService.update(messageId, request);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(updatedMessage);
+    }
+
+    @DeleteMapping(path = "{messageId}")
+    public ResponseEntity<Void> delete(@PathVariable("messageId") UUID messageId) {
+        messageService.delete(messageId);
+        return ResponseEntity
+                .status(HttpStatus.NO_CONTENT)
+                .build();
     }
 
     @GetMapping
-    public ResponseEntity<List<Message>> findAllByChannelId(@RequestParam UUID channelId) {
+    public ResponseEntity<List<Message>> findAllByChannelId(
+            @RequestParam("channelId") UUID channelId) {
         List<Message> messages = messageService.findAllByChannelId(channelId);
-        return ResponseEntity.ok(messages);
-    }
-
-    @PutMapping("/{messageId}")
-    public ResponseEntity<Message> update(
-            @PathVariable UUID messageId,
-            @RequestBody MessageUpdateRequest request
-    ) {
-        Message updatedMessage = messageService.update(messageId, request);
-        return ResponseEntity.ok(updatedMessage);
-    }
-
-    @DeleteMapping("/{messageId}")
-    public ResponseEntity<Void> delete(@PathVariable UUID messageId) {
-        messageService.delete(messageId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(messages);
     }
 }
