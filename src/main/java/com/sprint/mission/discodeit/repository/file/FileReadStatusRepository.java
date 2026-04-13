@@ -2,8 +2,6 @@ package com.sprint.mission.discodeit.repository.file;
 
 import com.sprint.mission.discodeit.entity.ReadStatus;
 import com.sprint.mission.discodeit.repository.ReadStatusRepository;
-import com.sprint.mission.discodeit.repository.UserRepository;
-import com.sprint.mission.discodeit.repository.UserStatusRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
@@ -15,33 +13,43 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Stream;
 
 @ConditionalOnProperty(name = "discodeit.repository.type", havingValue = "file")
 @Repository
 public class FileReadStatusRepository implements ReadStatusRepository {
-    private final String FILE_EXTENSION = ".ser";
+
     private final Path DIRECTORY;
+    private final String EXTENSION = ".ser";
+    private final FileLockProvider fileLockProvider;
 
     public FileReadStatusRepository(
-            @Value("${discodeit.repository.file-directory:data}") String fileDirectory
+            @Value("${discodeit.repository.file-directory:data}") String fileDirectory,
+            FileLockProvider fileLockProvider
     ) {
-        this.DIRECTORY = Paths.get(System.getProperty("user.dir"), fileDirectory, ReadStatus.class.getSimpleName());
+        this.DIRECTORY = Paths.get(System.getProperty("user.dir"), fileDirectory,
+                ReadStatus.class.getSimpleName());
         if (Files.notExists(DIRECTORY)) {
             try {
-                Files.createDirectory(DIRECTORY);
+                Files.createDirectories(DIRECTORY);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
+        this.fileLockProvider = fileLockProvider;
     }
 
     private Path resolvePath(UUID id) {
-        return DIRECTORY.resolve(id + FILE_EXTENSION);
+        return DIRECTORY.resolve(id + EXTENSION);
     }
 
     @Override
     public ReadStatus save(ReadStatus readStatus) {
         Path path = resolvePath(readStatus.getId());
+        ReentrantLock lock = fileLockProvider.getLock(path);
+        lock.lock();
+
         try (
                 FileOutputStream fos = new FileOutputStream(path.toFile());
                 ObjectOutputStream oos = new ObjectOutputStream(fos)
@@ -49,6 +57,8 @@ public class FileReadStatusRepository implements ReadStatusRepository {
             oos.writeObject(readStatus);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            lock.unlock();
         }
         return readStatus;
     }
@@ -57,6 +67,8 @@ public class FileReadStatusRepository implements ReadStatusRepository {
     public Optional<ReadStatus> findById(UUID id) {
         ReadStatus readStatusNullable = null;
         Path path = resolvePath(id);
+        ReentrantLock lock = fileLockProvider.getLock(path);
+        lock.lock();
         if (Files.exists(path)) {
             try (
                     FileInputStream fis = new FileInputStream(path.toFile());
@@ -65,6 +77,8 @@ public class FileReadStatusRepository implements ReadStatusRepository {
                 readStatusNullable = (ReadStatus) ois.readObject();
             } catch (IOException | ClassNotFoundException e) {
                 throw new RuntimeException(e);
+            } finally {
+                lock.unlock();
             }
         }
         return Optional.ofNullable(readStatusNullable);
@@ -72,10 +86,12 @@ public class FileReadStatusRepository implements ReadStatusRepository {
 
     @Override
     public List<ReadStatus> findAllByUserId(UUID userId) {
-        try {
-            return Files.list(DIRECTORY)
-                    .filter(path -> path.toString().endsWith(FILE_EXTENSION))
+        try (Stream<Path> paths = Files.list(DIRECTORY)) {
+            return paths
+                    .filter(path -> path.toString().endsWith(EXTENSION))
                     .map(path -> {
+                        ReentrantLock lock = fileLockProvider.getLock(path);
+                        lock.lock();
                         try (
                                 FileInputStream fis = new FileInputStream(path.toFile());
                                 ObjectInputStream ois = new ObjectInputStream(fis)
@@ -83,6 +99,8 @@ public class FileReadStatusRepository implements ReadStatusRepository {
                             return (ReadStatus) ois.readObject();
                         } catch (IOException | ClassNotFoundException e) {
                             throw new RuntimeException(e);
+                        } finally {
+                            lock.unlock();
                         }
                     })
                     .filter(readStatus -> readStatus.getUserId().equals(userId))
@@ -94,10 +112,12 @@ public class FileReadStatusRepository implements ReadStatusRepository {
 
     @Override
     public List<ReadStatus> findAllByChannelId(UUID channelId) {
-        try {
-            return Files.list(DIRECTORY)
-                    .filter(path -> path.toString().endsWith(FILE_EXTENSION))
+        try (Stream<Path> paths = Files.list(DIRECTORY)) {
+            return paths
+                    .filter(path -> path.toString().endsWith(EXTENSION))
                     .map(path -> {
+                        ReentrantLock lock = fileLockProvider.getLock(path);
+                        lock.lock();
                         try (
                                 FileInputStream fis = new FileInputStream(path.toFile());
                                 ObjectInputStream ois = new ObjectInputStream(fis)
@@ -105,6 +125,8 @@ public class FileReadStatusRepository implements ReadStatusRepository {
                             return (ReadStatus) ois.readObject();
                         } catch (IOException | ClassNotFoundException e) {
                             throw new RuntimeException(e);
+                        } finally {
+                            lock.unlock();
                         }
                     })
                     .filter(readStatus -> readStatus.getChannelId().equals(channelId))

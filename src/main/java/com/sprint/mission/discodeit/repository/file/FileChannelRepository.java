@@ -9,16 +9,19 @@ import org.springframework.stereotype.Repository;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @ConditionalOnProperty(name = "discodeit.repository.type", havingValue = "file")
 @Repository
 public class FileChannelRepository implements ChannelRepository{
     private final String FILE_EXTENSION = ".ser";
     private final Path DIRECTORY;
+    private final FileLockProvider fileLockProvider;
 
     public FileChannelRepository(
-            @Value("${discodeit.repository.file-directory:data}") String fileDirectory
+            @Value("${discodeit.repository.file-directory:data}") String fileDirectory, FileLockProvider fileLockProvider
     ) {
         this.DIRECTORY = Paths.get(System.getProperty("user.dir"), fileDirectory, Channel.class.getSimpleName());
         if (Files.notExists(DIRECTORY)) {
@@ -28,6 +31,7 @@ public class FileChannelRepository implements ChannelRepository{
                 throw new RuntimeException(e);
             }
         }
+        this.fileLockProvider = fileLockProvider;
     }
 
     private Path resolvePath(UUID id) {
@@ -36,7 +40,11 @@ public class FileChannelRepository implements ChannelRepository{
 
     @Override
     public Channel save(Channel channel) {
+        Channel channelNullable = null;
         Path path = resolvePath(channel.getId());
+        ReentrantLock lock = fileLockProvider.getLock(path);
+
+        lock.lock();
         try (
                 FileOutputStream fos = new FileOutputStream(path.toFile());
                 ObjectOutputStream oos = new ObjectOutputStream(fos)
@@ -44,6 +52,8 @@ public class FileChannelRepository implements ChannelRepository{
             oos.writeObject(channel);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            lock.unlock();
         }
         return channel;
     }
@@ -52,32 +62,45 @@ public class FileChannelRepository implements ChannelRepository{
     public Optional<Channel> findById(UUID id) {
         Channel channelNullable = null;
         Path path = resolvePath(id);
-        if (Files.exists(path)) {
-            try (
-                    FileInputStream fis = new FileInputStream(path.toFile());
-                    ObjectInputStream ois = new ObjectInputStream(fis)
-            ) {
-                channelNullable = (Channel) ois.readObject();
-            } catch (IOException | ClassNotFoundException e) {
-                throw new RuntimeException(e);
+        ReentrantLock lock = fileLockProvider.getLock(path);
+
+        lock.lock();
+        try {
+            if (Files.exists(path)) {
+                try (
+                        FileInputStream fis = new FileInputStream(path.toFile());
+                        ObjectInputStream ois = new ObjectInputStream(fis)
+                ) {
+                    channelNullable = (Channel) ois.readObject();
+                }
             }
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } finally {
+            lock.unlock();
         }
         return Optional.ofNullable(channelNullable);
     }
 
     @Override
     public List<Channel> findAll() {
-        try {
-            return Files.list(DIRECTORY)
+        try (Stream<Path> paths = Files.list(DIRECTORY)) {
+            return paths
                     .filter(path -> path.toString().endsWith(FILE_EXTENSION))
                     .map(path -> {
+                        ReentrantLock lock = fileLockProvider.getLock(path);
+
+                        lock.lock();
                         try (
                                 FileInputStream fis = new FileInputStream(path.toFile());
                                 ObjectInputStream ois = new ObjectInputStream(fis)
                         ) {
                             return (Channel) ois.readObject();
+
                         } catch (IOException | ClassNotFoundException e) {
                             throw new RuntimeException(e);
+                        } finally {
+                            lock.unlock();
                         }
                     })
                     .toList();
