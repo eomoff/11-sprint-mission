@@ -14,15 +14,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Stream;
 
 @ConditionalOnProperty(name = "discodeit.repository.type", havingValue = "file")
 @Repository
 public class FileBinaryContentRepository implements BinaryContentRepository {
     private final Path DIRECTORY;
     private final String EXTENSION = ".ser";
+    private final FileLockProvider fileLockProvider;
 
     public FileBinaryContentRepository(
-            @Value("${discodeit.repository.file-directory:data}") String fileDirectory
+            @Value("${discodeit.repository.file-directory:data}") String fileDirectory, FileLockProvider fileLockProvider
     ) {
         this.DIRECTORY = Paths.get(System.getProperty("user.dir"), fileDirectory, BinaryContent.class.getSimpleName());
         if (Files.notExists(DIRECTORY)) {
@@ -32,6 +36,7 @@ public class FileBinaryContentRepository implements BinaryContentRepository {
                 throw new RuntimeException(e);
             }
         }
+        this.fileLockProvider = fileLockProvider;
     }
 
     private Path resolvePath(UUID id) {
@@ -41,6 +46,9 @@ public class FileBinaryContentRepository implements BinaryContentRepository {
     @Override
     public BinaryContent save(BinaryContent binaryContent) {
         Path path = resolvePath(binaryContent.getId());
+        ReentrantLock lock = fileLockProvider.getLock(path);
+        lock.lock();
+
         try (
                 FileOutputStream fos = new FileOutputStream(path.toFile());
                 ObjectOutputStream oos = new ObjectOutputStream(fos)
@@ -48,6 +56,8 @@ public class FileBinaryContentRepository implements BinaryContentRepository {
             oos.writeObject(binaryContent);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            lock.unlock();
         }
         return binaryContent;
     }
@@ -56,6 +66,8 @@ public class FileBinaryContentRepository implements BinaryContentRepository {
     public Optional<BinaryContent> findById(UUID id) {
         BinaryContent binaryContentNullable = null;
         Path path = resolvePath(id);
+        ReentrantLock lock = fileLockProvider.getLock(path);
+        lock.lock();
         if (Files.exists(path)) {
             try (
                     FileInputStream fis = new FileInputStream(path.toFile());
@@ -64,6 +76,8 @@ public class FileBinaryContentRepository implements BinaryContentRepository {
                 binaryContentNullable = (BinaryContent) ois.readObject();
             } catch (IOException | ClassNotFoundException e) {
                 throw new RuntimeException(e);
+            } finally {
+                lock.unlock();
             }
         }
         return Optional.ofNullable(binaryContentNullable);
@@ -71,10 +85,12 @@ public class FileBinaryContentRepository implements BinaryContentRepository {
 
     @Override
     public List<BinaryContent> findAllByIdIn(List<UUID> ids) {
-        try {
-            return Files.list(DIRECTORY)
+        try (Stream<Path> paths = Files.list(DIRECTORY)) {
+            return paths
                     .filter(path -> path.toString().endsWith(EXTENSION))
                     .map(path -> {
+                        ReentrantLock lock = fileLockProvider.getLock(path);
+                        lock.lock();
                         try (
                                 FileInputStream fis = new FileInputStream(path.toFile());
                                 ObjectInputStream ois = new ObjectInputStream(fis)
@@ -82,6 +98,8 @@ public class FileBinaryContentRepository implements BinaryContentRepository {
                             return (BinaryContent) ois.readObject();
                         } catch (IOException | ClassNotFoundException e) {
                             throw new RuntimeException(e);
+                        } finally {
+                            lock.unlock();
                         }
                     })
                     .filter(content -> ids.contains(content.getId()))
