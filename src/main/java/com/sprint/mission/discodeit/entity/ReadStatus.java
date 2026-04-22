@@ -1,43 +1,47 @@
 package com.sprint.mission.discodeit.entity;
 
-import lombok.Getter;
-
-import java.io.Serializable;
+import com.sprint.mission.discodeit.entity.base.BaseUpdatableEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
-import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@Entity
+@Table(
+    name = "read_statuses",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "channel_id"})
+    }
+)
 @Getter
-// 메세지 읽음 상태
-public class ReadStatus implements Serializable {
-    // 직렬화
-    private static final long serialVersionUID = 1L;
-    // 공통 필드
-    private UUID id;
-    private Instant createdAt;
-    private Instant updatedAt;
-    // 개별 필드
-    private UUID userId;        // 누구의 읽음 상태인지
-    private UUID channelId;     // 어떤 채널에 대한 것인지
-    private Instant lastReadAt; // 마지막으로 읽은 시간
-    // 생성자
-    public ReadStatus(UUID userId, UUID channelId, Instant lastReadAt) {
-        this.id = UUID.randomUUID();
-        this.createdAt = Instant.now();
-        //
-        this.userId = userId;
-        this.channelId = channelId;
-        this.lastReadAt = lastReadAt;
-    }
-    // 수정
-    public void update(Instant newLastReadAt) {
-        boolean anyValueUpdate =  false;
-        if (newLastReadAt != null && newLastReadAt.equals(this.lastReadAt)) {
-            this.lastReadAt = newLastReadAt;
-            anyValueUpdate = true;
-        }
-        if (anyValueUpdate) {
-            this.updatedAt = Instant.now();
-        }
-    }
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class ReadStatus extends BaseUpdatableEntity {
 
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", columnDefinition = "uuid")
+  private User user;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "channel_id", columnDefinition = "uuid")
+  private Channel channel;
+  @Column(columnDefinition = "timestamp with time zone", nullable = false)
+  private Instant lastReadAt;
+
+  public ReadStatus(User user, Channel channel, Instant lastReadAt) {
+    this.user = user;
+    this.channel = channel;
+    this.lastReadAt = lastReadAt;
+  }
+
+  public void update(Instant newLastReadAt) {
+    if (newLastReadAt != null && !newLastReadAt.equals(this.lastReadAt)) {
+      this.lastReadAt = newLastReadAt;
+    }
+  }
 }
