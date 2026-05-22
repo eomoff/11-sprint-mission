@@ -6,6 +6,7 @@ build/
 .kotlin
 .env
 discodeit.env
+.pem
 
 ### IntelliJ IDEA ###
 .idea
